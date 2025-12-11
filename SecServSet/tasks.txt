@@ -1,0 +1,12 @@
+😀👍🔥😁💀|😀👍🔥😁💀|PENDING
+0|0|PENDING
+-1|-1|PENDING
+999999999999|999999999999|PENDING
+3.14159265|3.14159265|PENDING
+true|true|PENDING
+false|false|PENDING
+<script>alert(1)</script>|<script>alert(1)</script>|PENDING
+' OR '1'='1|' OR '1'='1|PENDING
+" OR ""="|" OR ""="|PENDING
+'; DROP TABLE users; --|'; DROP TABLE users; --|PENDING
+😀👍🔥😁💀|😀👍🔥😁💀|PENDING

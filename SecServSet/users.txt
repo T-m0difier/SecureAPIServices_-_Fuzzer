@@ -1,0 +1,4 @@
+admin|admin@example.com|0|$2a$10$gubLI9oe6Ec7FZMjGlbbDOVQBMv7CA/9roWc5zaQInn77zdqIp/4u|ROLE_ADMIN
+Nobody|none2@gmail.com|0|$2a$10$vT0pviFJ7YAQo1vA/hMRDuX945p5QBoy9O182S8HzucsgnnrtUXEO|ROLE_USER
+admin2|admin2@example.com|0|$2a$10$FbD9ECAvSU0UG3RhLzCLTOKNm5wTRccTv5ezqnAIHi9rFzHzvzCvS|ROLE_ADMIN
+none|none@example.com|0|$2a$10$dCkWv/.MEFPOlycaBN7DYORejftW4nYQaLANKGUCodjO7rff2IyGe|ROLE_USER
