@@ -80,3 +80,5 @@ public class User{
     public String getAdminSecret() { return adminSecret; }
     public void setAdminSecret(String adminSecret) { this.adminSecret = adminSecret; }
 }
+
+

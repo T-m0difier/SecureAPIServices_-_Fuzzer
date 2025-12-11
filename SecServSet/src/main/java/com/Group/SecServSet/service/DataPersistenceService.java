@@ -12,6 +12,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.io.*;
 import java.util.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 @Service
 public class DataPersistenceService {
@@ -20,6 +23,8 @@ public class DataPersistenceService {
     private final TaskRepo taskRepo;
     private final PasswordEncoder encoder;
 
+    private final ObjectMapper objectMapper;
+
     private final File usersFile = new File("users.txt");
     private final File tasksFile = new File("tasks.txt");
 
@@ -27,6 +32,11 @@ public class DataPersistenceService {
         this.userRepo = userRepo;
         this.taskRepo = taskRepo;
         this.encoder = encoder;
+
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+
+
     }
 
     // Load data when application starts
@@ -36,45 +46,26 @@ public class DataPersistenceService {
         loadTasks();
     }
 
+    //Load Users
     private void loadUsers() {
-        if (!usersFile.exists()) return;
+        if (!usersFile.exists() || usersFile.length() == 0) return;
 
-        try (BufferedReader br = new BufferedReader(new FileReader(usersFile))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                // Format: username|email|age|password|role
-                String[] p = line.split("\\|");
+        try {
 
-                User u = new User();
-                u.setUsername(p[0]);
-                u.setEmail(p[1]);
-                u.setAge(Integer.parseInt(p[2]));
-                u.setPassword(p[3]); // already encoded
-                u.setRole(Role.valueOf(p[4]));
-
-                userRepo.save(u);
-            }
+            List<User> users = objectMapper.readValue(usersFile, new TypeReference<List<User>>() {});
+            userRepo.saveAll(users);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    //Load Tasks
     private void loadTasks() {
-        if (!tasksFile.exists()) return;
+        if (!tasksFile.exists() || tasksFile == 0) return;
 
-        try (BufferedReader br = new BufferedReader(new FileReader(tasksFile))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                // Format: title|description|status
-                String[] p = line.split("\\|");
-
-                Task t = new Task();
-                t.setTitle(p[0]);
-                t.setDescription(p[1]);
-                t.setStatus(Status.valueOf(p[2]));
-
-                taskRepo.save(t);
-            }
+        try {
+            List<Task> tasks = objectMapper.readValue(tasksFile, new TypeReference<List<Tasks>>() {});
+            taskRepo.saveAll(tasks);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -87,33 +78,25 @@ public class DataPersistenceService {
         saveTasks();
     }
 
+    //Save Users
     private void saveUsers() {
-        try (PrintWriter pw = new PrintWriter(new FileWriter(usersFile))) {
-            for (User u : userRepo.findAll()) {
-                pw.println(
-                        u.getUsername() + "|" +
-                                u.getEmail() + "|" +
-                                (u.getAge() == null ? 0 : u.getAge()) + "|" +
-                                u.getPassword() + "|" +
-                                u.getRole()
-                );
-            }
-        } catch (Exception e) {
+        try {
+            List<User> users = userRepo.findAll();
+            objectMapper.writeValue(usersFile, users);
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    //Save Tasks
     private void saveTasks() {
-        try (PrintWriter pw = new PrintWriter(new FileWriter(tasksFile))) {
-            for (Task t : taskRepo.findAll()) {
-                pw.println(
-                        t.getTitle() + "|" +
-                                t.getDescription() + "|" +
-                                t.getStatus()
-                );
-            }
-        } catch (Exception e) {
+        try {
+            List<Task> tasks = taskRepo.findAll();
+            objectMapper.writeValue(tasksFile, tasks);
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 }
+
+

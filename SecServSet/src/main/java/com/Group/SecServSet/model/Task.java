@@ -3,6 +3,8 @@ package com.Group.SecServSet.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
+
+
 @JsonIgnoreProperties(ignoreUnknown = false)
 @Entity
 public class Task {
@@ -12,7 +14,6 @@ public class Task {
     private Long id;
 
     private String title;
-
     private String description;
     @Enumerated(EnumType.STRING)
     private Status status;
