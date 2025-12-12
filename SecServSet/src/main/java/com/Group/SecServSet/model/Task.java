@@ -18,6 +18,11 @@ public class Task {
     @Enumerated(EnumType.STRING)
     private Status status;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"username","email","age","password","role","adminSecret"})
+    private User owner;
+
     public Task() {}
 
     public Task(String title, String description, Status status) {
@@ -54,5 +59,10 @@ public class Task {
         this.status = status;
     }
 
+    public User getOwner() { return owner;}
+
+    public void setOwner(User owner) {
+        this.owner = owner;
+    }
 
 }

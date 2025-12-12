@@ -2,5 +2,8 @@
   "id" : 1,
   "title" : "Task",
   "description" : "Desc",
-  "status" : "PENDING"
+  "status" : "PENDING",
+  "owner" : {
+    "id" : 1
+  }
 } ]

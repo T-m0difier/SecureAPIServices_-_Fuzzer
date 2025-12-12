@@ -2,8 +2,10 @@ package com.Group.SecServSet.control;
 
 import com.Group.SecServSet.model.Task;
 import com.Group.SecServSet.repo.TaskRepo;
+import com.Group.SecServSet.model.User;
+import com.Group.SecServSet.repo.UserRepo;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,9 +18,11 @@ import java.util.NoSuchElementException;
 public class TaskControl {
 
     private final TaskRepo taskRepository;
+    private final UserRepo userRepo;
 
-    public TaskControl(TaskRepo taskRepository) {
+    public TaskControl(TaskRepo taskRepository, UserRepo userRepo) {
         this.taskRepository = taskRepository;
+        this.userRepo = userRepo;
     }
 
     @PostMapping
@@ -37,13 +41,23 @@ public class TaskControl {
             return ResponseEntity.badRequest().body(Map.of("error", "Task status is required"));
         }
 
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User owner = userRepo.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+
+        task.setOwner(owner);
         taskRepository.save(task);
         return ResponseEntity.ok(Map.of("message", "Task created", "id", task.getId()));
     }
 
     @GetMapping
     public ResponseEntity<?> getAllTasks() {
-        List<Task> tasks = taskRepository.findAll();
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        List<Task> tasks = isAdmin
+                ? taskRepository.findAll()
+                : taskRepository.findByOwner_Username(username);
         if (tasks.isEmpty()) {
             return ResponseEntity.ok("Tasks table is empty");
         }
@@ -54,29 +68,55 @@ public class TaskControl {
     public ResponseEntity<?> getTask(@PathVariable Long id) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Task with ID " + id + " not found"));
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !task.getOwner().getUsername().equals(username)) {
+            return ResponseEntity.status(403).body(Map.of("error", "You can view only your own tasks"));
+        }
         return ResponseEntity.ok(task);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<?> updateTask(@PathVariable Long id, @RequestBody Task updatedTask) {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Task with ID " + id + " not found"));
 
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
+                        .getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !task.getOwner().getUsername().equals(username)) {
+            return ResponseEntity.status(403).body(Map.of("error", "You can update only your own tasks"));
+        }
+
+
         task.setTitle(updatedTask.getTitle());
         task.setDescription(updatedTask.getDescription());
         task.setStatus(updatedTask.getStatus());
-
         taskRepository.save(task);
         return ResponseEntity.ok("Task updated with ID: " + task.getId());
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteTask(@PathVariable Long id) {
         if (!taskRepository.existsById(id)) {
             return ResponseEntity.ok("Task with ID " + id + " does not exist");
         }
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Task with ID " + id + " not found"));
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+                .stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !task.getOwner().getUsername().equals(username)) {
+            return ResponseEntity.status(403).body(Map.of("error", "You may delete ONLY your own tasks"));
+        }
+
         taskRepository.deleteById(id);
         return ResponseEntity.ok("Task deleted with ID: " + id);
     }

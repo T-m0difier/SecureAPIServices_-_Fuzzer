@@ -3,15 +3,7 @@
   "username" : "none",
   "email" : "none@example.com",
   "age" : null,
-  "password" : "$2a$10$sxn6bvPFHYkuPddRR.1DCOSM2tS/MkKAUgbZsIwKtBXUAU6fpZA7.",
+  "password" : "$2a$10$fSg.l69lSf1DO7q6xN2mVuNe9wiaveZiCpqg/7FOe9kbWM6WcBGge",
   "role" : "ROLE_USER",
-  "adminSecret" : null
-}, {
-  "id" : 2,
-  "username" : "admin",
-  "email" : "admin@example.com",
-  "age" : null,
-  "password" : "$2a$10$yPf6TUKfljfm9hiW7dWDg.hxb/s1myg.1MQd7uNk55r10enZpjjIO",
-  "role" : "ROLE_ADMIN",
   "adminSecret" : null
 } ]
