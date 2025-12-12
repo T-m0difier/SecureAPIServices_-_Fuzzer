@@ -1,0 +1,17 @@
+[ {
+  "id" : 1,
+  "username" : "none",
+  "email" : "none@example.com",
+  "age" : null,
+  "password" : "$2a$10$sxn6bvPFHYkuPddRR.1DCOSM2tS/MkKAUgbZsIwKtBXUAU6fpZA7.",
+  "role" : "ROLE_USER",
+  "adminSecret" : null
+}, {
+  "id" : 2,
+  "username" : "admin",
+  "email" : "admin@example.com",
+  "age" : null,
+  "password" : "$2a$10$yPf6TUKfljfm9hiW7dWDg.hxb/s1myg.1MQd7uNk55r10enZpjjIO",
+  "role" : "ROLE_ADMIN",
+  "adminSecret" : null
+} ]

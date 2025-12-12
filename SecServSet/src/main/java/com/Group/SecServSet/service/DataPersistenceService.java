@@ -25,8 +25,8 @@ public class DataPersistenceService {
 
     private final ObjectMapper objectMapper;
 
-    private final File usersFile = new File("users.txt");
-    private final File tasksFile = new File("tasks.txt");
+    private final File usersFile = new File("users.json");
+    private final File tasksFile = new File("tasks.json");
 
     public DataPersistenceService(UserRepo userRepo, TaskRepo taskRepo, PasswordEncoder encoder) {
         this.userRepo = userRepo;
@@ -61,10 +61,10 @@ public class DataPersistenceService {
 
     //Load Tasks
     private void loadTasks() {
-        if (!tasksFile.exists() || tasksFile == 0) return;
+        if (!tasksFile.exists() || tasksFile.length() == 0) return;
 
         try {
-            List<Task> tasks = objectMapper.readValue(tasksFile, new TypeReference<List<Tasks>>() {});
+            List<Task> tasks = objectMapper.readValue(tasksFile, new TypeReference<List<Task>>() {});
             taskRepo.saveAll(tasks);
         } catch (Exception e) {
             e.printStackTrace();
