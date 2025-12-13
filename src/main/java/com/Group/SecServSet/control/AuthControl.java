@@ -3,6 +3,8 @@ package com.Group.SecServSet.control;
 import com.Group.SecServSet.model.Role;
 import com.Group.SecServSet.model.User;
 import com.Group.SecServSet.repo.UserRepo;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -64,6 +66,17 @@ public class AuthControl {
 
         return ResponseEntity.status(201)
                 .body(Map.of("message", "User registered", "username", user.getUsername()));
+    }
+
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpServletRequest request) {
+        try {
+            request.login(body.get("username"), body.get("password")); // session is created automatically
+            return ResponseEntity.ok(Map.of("message", "Login successful"));
+        } catch (ServletException e) {
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
+        }
     }
 
 }
