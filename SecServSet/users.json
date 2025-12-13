@@ -1,9 +1,0 @@
-[ {
-  "id" : 1,
-  "username" : "none",
-  "email" : "none@example.com",
-  "age" : null,
-  "password" : "$2a$10$fSg.l69lSf1DO7q6xN2mVuNe9wiaveZiCpqg/7FOe9kbWM6WcBGge",
-  "role" : "ROLE_USER",
-  "adminSecret" : null
-} ]
