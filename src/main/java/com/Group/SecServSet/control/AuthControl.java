@@ -3,10 +3,18 @@ package com.Group.SecServSet.control;
 import com.Group.SecServSet.model.Role;
 import com.Group.SecServSet.model.User;
 import com.Group.SecServSet.repo.UserRepo;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -17,10 +25,12 @@ import java.util.Map;
 public class AuthControl {
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
 
-    public AuthControl(UserRepo userRepo, PasswordEncoder passwordEncoder) {
+    public AuthControl(UserRepo userRepo, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
     }
 
     // Register a new user.
@@ -70,12 +80,61 @@ public class AuthControl {
 
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpServletRequest request) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpServletRequest httpRequest) {
+
+        String username = body.get("username");
+        String password = body.get("password");
+
+        // Check if user is already authenticated
+        Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
+        if (currentAuth != null && currentAuth.isAuthenticated()
+                && !currentAuth.getPrincipal().equals("anonymousUser")) {
+
+            String currentUsername = currentAuth.getName();
+
+            // If trying to log in as the same user
+            if (currentUsername.equals(username)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of(
+                                "error", "Already logged in as " + currentUsername,
+                                "message", "Please logout first or continue with current session"
+                        ));
+            }
+
+            // If trying to log in as a different user
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of(
+                            "error", "Already logged in as " + currentUsername,
+                            "message", "Please logout before logging in as a different user"
+                    ));
+        }
+
         try {
-            request.login(body.get("username"), body.get("password")); // session is created automatically
-            return ResponseEntity.ok(Map.of("message", "Login successful"));
-        } catch (ServletException e) {
-            return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
+            // Authenticate the user
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password)
+            );
+
+            // Create new security context
+            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+            securityContext.setAuthentication(authentication);
+            SecurityContextHolder.setContext(securityContext);
+
+            // Save to session
+            HttpSession session = httpRequest.getSession(true);
+            session.setAttribute(
+                    HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                    securityContext
+            );
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Login successful",
+                    "username", authentication.getName()
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid credentials"));
         }
     }
 

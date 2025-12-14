@@ -107,6 +107,7 @@ public class TaskControl {
 
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Task with ID " + id + " not found"));
+        String taskTitle = task.getTitle();
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
@@ -118,7 +119,11 @@ public class TaskControl {
         }
 
         taskRepository.delete(task);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(Map.of(
+                "message", "Task deleted successfully",
+                "deletedTaskId", id,
+                "deletedTaskTitle", taskTitle
+        ));
     }
 
 

@@ -2,13 +2,15 @@ package com.Group.SecServSet.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+
 
 @Configuration
 @EnableMethodSecurity
@@ -25,51 +27,48 @@ public class SecurityConfig {
     }
 
     @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
+    }
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/register", "/auth/login", "/h2-console/**").permitAll()
-                        .requestMatchers("/users/**").hasRole("ADMIN")
-                        .requestMatchers("/tasks/**").authenticated()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/users").hasRole("ADMIN")  // Only GET /users and POST /users
+                        .requestMatchers("/users/{id}").hasAnyRole("USER", "ADMIN")  // Allow users to access specific user endpoints
+                        .requestMatchers("/tasks/**").permitAll()
                 )
                 .sessionManagement(session -> session
-                        // ADDED — prevents session fixation
                         .sessionFixation().migrateSession()
-
-                        // ADDED — 1 session per user
                         .maximumSessions(1)
-                        .maxSessionsPreventsLogin(false)
-                )
-                .formLogin(form -> form
-                        .loginProcessingUrl("/auth/login")   //  session login endpoint
-                        .successHandler((req, res, auth) -> {
-                            res.setStatus(200);
-                            res.setContentType("application/json");
-                            res.getWriter().write("{\"message\": \"Login successful\"}");
-                        })
-                        .failureHandler((req, res, ex) -> {
-                            res.setStatus(401);
-                            res.setContentType("application/json");
-                            res.getWriter().write("{\"error\":\"invalid credentials\"}");
-
-                        })
+                        .maxSessionsPreventsLogin(true)
+                        .expiredUrl("/auth/login")
                 )
                 .logout(logout -> logout
-                        .logoutUrl("/auth/logout")          //  session logout
-                        .logoutSuccessUrl("/auth/login?logout")
-                        .invalidateHttpSession(true)        //  session invalidation
-                        .deleteCookies("JSESSIONID")        //  remove cookie
+                        .logoutUrl("/auth/logout")
+                        .logoutSuccessHandler((request, response, authentication) -> {
+                            response.setStatus(200);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"message\": \"Logout successful\"}");
+                        })
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
                 )
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.disable())
                 );
-
 
         return http.build();
     }
 
 
 }
+
+
+
+
+

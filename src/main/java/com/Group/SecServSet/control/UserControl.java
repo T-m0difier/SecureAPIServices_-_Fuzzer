@@ -4,6 +4,8 @@ import com.Group.SecServSet.model.User;
 import com.Group.SecServSet.repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +24,7 @@ public class UserControl {
     private PasswordEncoder passwordEncoder;
 
 
-    // -------- CREATE USER (admin only normally) ----------
+    // -------- CREATE USER (admin only) ----------
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createUser(@RequestBody User user) {
@@ -38,7 +40,7 @@ public class UserControl {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
 
-        return ResponseEntity.ok(Map.of("message", "User created", "username", user.getUsername()));
+        return ResponseEntity.status(201).body(Map.of("message", "User created", "username", user.getUsername()));
     }
 
     // -------- LIST USERS (ADMIN ONLY) ----------
@@ -52,13 +54,32 @@ public class UserControl {
         return ResponseEntity.ok(all);
     }
 
-    // -------- GET USER (ADMIN ONLY) ----------
+    // -------- GET USER (USER can view self, ADMIN can view anyone) ----------
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<?> getUser(@PathVariable Long id) {
-        return userRepository.findById(id)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "User not found")));
+
+        Optional<User> opt = userRepository.findById(id);
+
+        if (opt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "User not found"));
+        }
+
+        User user = opt.get();
+
+        // Get authenticated user info
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String authenticatedUsername = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        // Block normal users from viewing others
+        if (!isAdmin && !authenticatedUsername.equals(user.getUsername())) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "You can only view your own profile"));
+        }
+
+        return ResponseEntity.ok(user);
     }
 
     // -------- UPDATE USER (USER updates self, ADMIN updates anyone) ----------
@@ -75,15 +96,13 @@ public class UserControl {
         User existing = opt.get();
 
         // Authenticated user info
-        String authenticated = org.springframework.security.core.context.SecurityContextHolder
-                .getContext().getAuthentication().getName();
-
-        boolean isAdmin = org.springframework.security.core.context.SecurityContextHolder
-                .getContext().getAuthentication().getAuthorities()
-                .stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String authenticatedUsername = auth.getName();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         // -------- BLOCK NORMAL USERS FROM UPDATING OTHERS ----------
-        if (!isAdmin && !authenticated.equals(existing.getUsername())) {
+        if (!isAdmin && !authenticatedUsername.equals(existing.getUsername())) {
             return ResponseEntity.status(403).body(Map.of("error", "You may update ONLY your own profile"));
         }
 
@@ -93,23 +112,29 @@ public class UserControl {
         }
 
         // -------- DUPLICATE USERNAME CHECK ----------
-        if (!existing.getUsername().equals(updatedUser.getUsername()) &&
+        if (updatedUser.getUsername() != null &&
+                !existing.getUsername().equals(updatedUser.getUsername()) &&
                 userRepository.existsByUsername(updatedUser.getUsername())) {
-
             return ResponseEntity.badRequest().body(Map.of("error", "Username already exists"));
         }
 
         // -------- DUPLICATE EMAIL CHECK ----------
-        if (!existing.getEmail().equals(updatedUser.getEmail()) &&
+        if (updatedUser.getEmail() != null &&
+                !existing.getEmail().equals(updatedUser.getEmail()) &&
                 userRepository.existsByEmail(updatedUser.getEmail())) {
-
             return ResponseEntity.badRequest().body(Map.of("error", "Email already exists"));
         }
 
         // -------- APPLY CHANGES ----------
-        existing.setUsername(updatedUser.getUsername());
-        existing.setEmail(updatedUser.getEmail());
-        existing.setAge(updatedUser.getAge());
+        if (updatedUser.getUsername() != null) {
+            existing.setUsername(updatedUser.getUsername());
+        }
+        if (updatedUser.getEmail() != null) {
+            existing.setEmail(updatedUser.getEmail());
+        }
+        if (updatedUser.getAge() != null) {
+            existing.setAge(updatedUser.getAge());
+        }
 
         // update password
         if (updatedUser.getPassword() != null && !updatedUser.getPassword().isBlank()) {
@@ -138,6 +163,4 @@ public class UserControl {
         userRepository.deleteById(id);
         return ResponseEntity.ok(Map.of("message", "User deleted", "id", id));
     }
-
-
 }
