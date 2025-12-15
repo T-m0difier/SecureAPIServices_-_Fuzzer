@@ -124,6 +124,10 @@ public class UserControl {
                 userRepository.existsByEmail(updatedUser.getEmail())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email already exists"));
         }
+        // -------- PREVENT ID CHANGE ----------
+        if (updatedUser.getId() != null && !updatedUser.getId().equals(existing.getId())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Cannot change your id"));
+        }
 
         // -------- APPLY CHANGES ----------
         if (updatedUser.getUsername() != null) {

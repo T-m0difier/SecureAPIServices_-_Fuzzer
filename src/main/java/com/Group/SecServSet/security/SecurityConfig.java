@@ -10,6 +10,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 
 
 @Configuration
@@ -32,10 +33,21 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
     @Bean
+    public AccessDeniedHandler customAccessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            response.setStatus(403);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\":\"You do not have the privileges needed to do this action\"}");
+        };
+    }
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
+                .exceptionHandling(ex -> ex
+                        .accessDeniedHandler(customAccessDeniedHandler())
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/register", "/auth/login", "/h2-console/**").permitAll()
                         .requestMatchers("/users").hasRole("ADMIN")  // Only GET /users and POST /users

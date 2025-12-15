@@ -5,7 +5,6 @@ import com.Group.SecServSet.model.User;
 import com.Group.SecServSet.repo.UserRepo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -62,12 +61,23 @@ public class AuthControl {
         Role requestedRole = user.getRole() == null ? Role.ROLE_USER : user.getRole();
 
         if (requestedRole == Role.ROLE_ADMIN) {
+            if (userRepo.existsByRole(Role.ROLE_ADMIN)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Admin registration is disabled. The first admin has already been created."));
+            }
             final String ADMIN_REG_SECRET = "SUPER-SECRET-ADMIN-CODE";
+            if (user.getAdminSecret() == null || user.getAdminSecret().isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Admin secret is required for admin registration"));
+            }
             if (!ADMIN_REG_SECRET.equals(user.getAdminSecret())) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Invalid admin secret"));
             }
         }
+
+
+
 
         user.setRole(requestedRole);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
