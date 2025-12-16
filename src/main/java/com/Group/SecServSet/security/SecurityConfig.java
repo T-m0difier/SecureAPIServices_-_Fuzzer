@@ -47,12 +47,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .exceptionHandling(ex -> ex
                         .accessDeniedHandler(customAccessDeniedHandler())
+                        .authenticationEntryPoint(customEntryPoint())
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/register", "/auth/login", "/h2-console/**").permitAll()
                         .requestMatchers("/users").hasRole("ADMIN")  // Only GET /users and POST /users
                         .requestMatchers("/users/{id}").hasAnyRole("USER", "ADMIN")  // Allow users to access specific user endpoints
-                        .requestMatchers("/tasks/**").permitAll()
+                        .requestMatchers("/tasks/**").authenticated().anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionFixation().migrateSession()
