@@ -1,0 +1,13 @@
+package com.Group.SecServSet.repo;
+
+import com.Group.SecServSet.model.Role;
+import com.Group.SecServSet.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
+
+public interface UserRepo extends JpaRepository<User, Long> {
+    Optional<User> findByUsername(String username);
+    boolean existsByUsername(String username);
+    boolean existsByEmail(String email);
+    boolean existsByRole(Role role);
+}
